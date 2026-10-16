@@ -23,7 +23,9 @@ idna==3.20
 iniconfig==2.3.0
 Mako==1.4.3
 MarkupSafe==3.0.3
-numpy==2.5.3
+# NumPy 2.4+ requires Python 3.12; keep the supported Python 3.11 install reproducible.
+numpy==2.3.5; python_version < "3.12"
+numpy==2.5.3; python_version >= "3.12"
 onnxruntime==1.30.0
 packaging==26.3
 playwright==1.63.0
