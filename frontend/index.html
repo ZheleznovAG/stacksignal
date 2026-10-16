@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<title>StackSignal</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236aa6ff' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='2.2' fill='%236aa6ff' stroke='none'/%3E%3Cpath d='M7.5 16.5a6.4 6.4 0 0 1 0-9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.4 19.6a10.7 10.7 0 0 1 0-15.2M19.6 4.4a10.7 10.7 0 0 1 0 15.2'/%3E%3C/svg%3E" />
+<script>
+  // Apply a pinned theme before the first paint, so the page never flashes the wrong colours.
+  try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<link rel="stylesheet" href="styles.css" />
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#view">К содержимому</a>
+<header class="app-header">
+  <a class="brand" href="#/today" aria-label="StackSignal — на главную">
+    <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M7.5 16.5a6.4 6.4 0 0 1 0-9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.4 19.6a10.7 10.7 0 0 1 0-15.2M19.6 4.4a10.7 10.7 0 0 1 0 15.2"/>
+    </svg>
+    <span class="brand-name">StackSignal</span>
+  </a>
+  <nav id="nav" class="nav" aria-label="Основная навигация"></nav>
+  <div class="header-actions">
+    <button id="health" class="health-pill" type="button"></button>
+    <button id="run" class="btn btn-primary" type="button"></button>
+  </div>
+</header>
+<main id="view" class="view" tabindex="-1"></main>
+<div id="modal-root"></div>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<noscript><p class="noscript">StackSignal нужен JavaScript.</p></noscript>
+</body>
+</html>

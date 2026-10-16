@@ -1,0 +1,4 @@
+# Browser smoke tests (backend/e2e/). Kept apart from requirements-dev.txt: they need a browser,
+# installed once with `python -m playwright install chromium`.
+-r requirements-dev.txt
+playwright==1.63.0

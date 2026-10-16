@@ -1,0 +1,30 @@
+# Local runtime state, profiles, agent prompts/results and backups
+/data/
+/github-export/
+/dist/
+/public-release/
+/projectpack-*/
+
+# Credentials and machine configuration
+.env
+.env.*
+!.env.example
+client.json
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
+# Environments, caches and generated exports
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.test-tmp/
+node_modules/
+*.log
+*.zip
+*.zip.sha256
+.DS_Store
