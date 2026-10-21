@@ -78,6 +78,16 @@ prompts/results and backups. The entire directory and `.env` are ignored by Git.
 Project profiles and collected content are shared with the configured gateway or agent
 when those analyses run. Collectors contact their respective external APIs.
 
+To keep personal state outside the checkout, set `STACKSIGNAL_PRIVATE_DIR` to a
+separate folder in your process environment or local `.env`. That folder holds the
+private `.env` and `data/`; the checkout's `.env` can contain only this pointer.
+Relative paths are resolved from the checkout. Existing process variables and the
+checkout's `.env` take precedence over the separate private `.env`. Move existing
+state while the app is stopped; the setting does not move files automatically.
+Backups, agent batches and Windows supervisor logs follow the configured directory.
+`scripts/github_export.py` also writes account exports there.
+Keep that folder outside repositories and back it up separately.
+
 Create a consistent backup while the app is running:
 
 ```powershell

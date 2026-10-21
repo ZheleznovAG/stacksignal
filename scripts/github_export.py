@@ -4,8 +4,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from make_archive import private_directory
 
-OUTPUT_DIR = Path("github-export")
+OUTPUT_DIR = private_directory() / "github-export"
 PER_PAGE = 100
 
 

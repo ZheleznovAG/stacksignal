@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # Tests never use keys from the real developer session, and never touch the network to fetch
 # the local embedding model either.
 os.environ["AI_ENABLED"] = "0"
+os.environ["STACKSIGNAL_PRIVATE_DIR"] = ""  # Never use an external personal installation in tests.
 os.environ["EMBEDDINGS_ENABLED"] = "0"
 os.environ["GITHUB_LOGIN"] = ""  # your stars are synced only in tests that set a login
 # FastAPI's TestClient sends "Host: testserver" (app/security.py refuses unknown hosts).

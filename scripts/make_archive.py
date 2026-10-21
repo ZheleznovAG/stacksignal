@@ -59,18 +59,19 @@ def is_secret(path: str) -> bool:
                for p in SECRET_PATTERNS)
 
 
-def read_regular(path: str) -> bytes:
+def read_regular(path: str, *, root: Path | None = None) -> bytes:
     """Check all components before opening; verify the file did not change."""
     relative = PurePosixPath(path)
     if relative.is_absolute() or ".." in relative.parts or "\\" in path:
         raise ArchiveError(f"Unsafe path: {path}")
-    current = ROOT
+    base = ROOT if root is None else root
+    current = base
     for part in relative.parts:
         current /= part
         info = current.lstat()
         if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
             raise ArchiveError(f"Link/reparse point refused: {path}")
-    if not stat.S_ISREG(info.st_mode) or not current.resolve().is_relative_to(ROOT.resolve()):
+    if not stat.S_ISREG(info.st_mode) or not current.resolve().is_relative_to(base.resolve()):
         raise ArchiveError(f"Not a regular project file: {path}")
     before = (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
     with current.open("rb") as stream:
@@ -79,7 +80,7 @@ def read_regular(path: str) -> bytes:
             raise ArchiveError(f"File changed while exporting: {path}")
         data = stream.read()
     after = current.lstat()
-    if (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) != before or current.resolve() != ROOT.resolve() / relative:
+    if (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) != before or current.resolve() != base.resolve() / relative:
         raise ArchiveError(f"File changed while exporting: {path}")
     return data
 
@@ -105,16 +106,35 @@ def project_files() -> tuple[list[str], list[str]]:
     return [p for p in paths if os.path.lexists(ROOT / p)], sorted(p for p in indexed if not is_secret(p))
 
 
-def secret_values() -> list[bytes]:
+def _local_environment() -> dict[str, str]:
     if not os.path.lexists(ROOT / ".env"):
-        return []
-    values = []
-    for line in read_regular(".env").decode("utf-8").splitlines():
+        return {}
+    return _parse_environment(read_regular(".env"))
+
+
+def _parse_environment(data: bytes) -> dict[str, str]:
+    values = {}
+    for line in data.decode("utf-8-sig").splitlines():
         key, sep, value = line.partition("=")
         value = value.strip().strip("'\"")
-        if sep and not line.lstrip().startswith("#") and SECRET_ENV_KEY.search(key.strip()) and value:
-            values.append(value.encode("utf-8"))
+        if sep and not line.lstrip().startswith("#"):
+            values[key.strip()] = value
     return values
+
+
+def private_directory() -> Path:
+    configured = os.environ.get("STACKSIGNAL_PRIVATE_DIR", _local_environment().get("STACKSIGNAL_PRIVATE_DIR", ""))
+    directory = Path(configured.strip() or ROOT).expanduser()
+    return (directory if directory.is_absolute() else ROOT / directory).resolve()
+
+
+def secret_values() -> list[bytes]:
+    environments = [_local_environment()]
+    private = private_directory()
+    if private != ROOT.resolve() and os.path.lexists(private / ".env"):
+        environments.append(_parse_environment(read_regular(".env", root=private)))
+    return list(dict.fromkeys(value.encode("utf-8") for env in environments for key, value in env.items()
+                              if SECRET_ENV_KEY.search(key) and value))
 
 
 def check_bytes(label: str, data: bytes, values: list[bytes]) -> None:
@@ -165,6 +185,9 @@ def write_zip(target: Path, *, include_data: bool = False) -> int:
     target = target.absolute()
     if target.exists() or target.is_symlink():
         raise ArchiveError("Output already exists; choose a new archive name")
+    if include_data and private_directory() != ROOT.resolve():
+        raise ArchiveError("Separate private storage is not included in project archives; "
+                           "use backend/scripts/backup.py and back up the private folder separately")
     files, indexed = project_files()
     local_data = data_files() if include_data else []
     values = secret_values()

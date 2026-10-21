@@ -9,6 +9,8 @@ Keep the service on loopback. Network hosting requires a separate security desig
 
 The SQLite database, profiles, votes, decisions, local folder paths, agent batches,
 AI responses and backups are private runtime data in `data/`. Keys belong in `.env`.
+Set `STACKSIGNAL_PRIVATE_DIR` to keep both outside the checkout; its private `.env`
+and `data/` are loaded automatically. Project archives never include that separate folder.
 Project descriptions and collected content are sent to an AI gateway or local agent
 when you explicitly use that analysis workflow. External collectors contact their
 respective APIs; Telegram sends a digest only when configured.

@@ -9,7 +9,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$logDir = Join-Path $root "data\logs"
+$stateDir = Join-Path $root "data"
+$venvPython = Join-Path $root ".venv\Scripts\python.exe"
+if (Test-Path $venvPython) {
+    $stateDir = & $venvPython -c "import sys; sys.path.insert(0, sys.argv[1]); from app.config import DATA_DIR; print(DATA_DIR)" (Join-Path $root "backend")
+    if ($LASTEXITCODE -ne 0) { throw "Could not resolve StackSignal's data directory" }
+    $stateDir = "$stateDir".Trim()
+}
+$logDir = Join-Path $stateDir "logs"
 $logFile = Join-Path $logDir "supervisor.log"
 $appPort = 8000
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null

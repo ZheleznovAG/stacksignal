@@ -31,6 +31,7 @@ def server(tmp_path_factory):
     env = {
         **os.environ,
         "STACKSIGNAL_DATABASE_URL": f"sqlite:///{db}",
+        "STACKSIGNAL_PRIVATE_DIR": "",
         # Empty values win over the developer's .env (load_dotenv never overrides what is set).
         "AI_ENABLED": "0", "AI_API_KEY": "", "EMBEDDINGS_ENABLED": "0", "SCHEDULER_ENABLED": "0",
         "DIGEST_ENABLED": "0", "DISCOVERY_ENABLED": "0", "TELEGRAM_BOT_TOKEN": "", "GITHUB_TOKEN": "",

@@ -476,6 +476,10 @@ Without a gateway, use keyword matching or the local agent export/apply workflow
   and it cannot be framed (`app/security.py`).
 - `.env` (keys) is gitignored; only `.env.example` is committed.
 - The entire `data/` directory is ignored by Git, including agent batches, profiles, logs and backups.
+- `STACKSIGNAL_PRIVATE_DIR` can point to a separate folder containing the private `.env` and `data/`.
+  Keep only that pointer in the checkout's ignored `.env`. Stop the app before moving existing state.
+  The database backup command and Windows supervisor follow this location. Back up the private folder
+  separately; project archives made with `--include-data` refuse separate private storage.
 - A new installation starts empty. Add your profiles through **Projects**, manually or by scanning a folder.
   Project descriptions are sent to the configured AI gateway or agent when those analyses run.
 

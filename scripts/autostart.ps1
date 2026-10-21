@@ -38,6 +38,13 @@ if ($Install) {
 } else {
     $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($task) { Write-Host "Registered: $taskName ($($task.State))" } else { Write-Host "Not registered. Run: scripts\autostart.ps1 -Install" }
-    $log = Join-Path $root "data\logs\supervisor.log"
+    $stateDir = Join-Path $root "data"
+    $venvPython = Join-Path $root ".venv\Scripts\python.exe"
+    if (Test-Path $venvPython) {
+        $stateDir = & $venvPython -c "import sys; sys.path.insert(0, sys.argv[1]); from app.config import DATA_DIR; print(DATA_DIR)" (Join-Path $root "backend")
+        if ($LASTEXITCODE -ne 0) { throw "Could not resolve StackSignal's data directory" }
+        $stateDir = "$stateDir".Trim()
+    }
+    $log = Join-Path $stateDir "logs\supervisor.log"
     if (Test-Path $log) { Write-Host "Last supervisor log lines:"; Get-Content $log -Tail 8 }
 }

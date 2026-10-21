@@ -6,8 +6,16 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env")
 
-DATA_DIR = ROOT_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
+# A local .env can contain just this pointer; credentials and state stay outside Git.
+PRIVATE_DIR = Path(os.getenv("STACKSIGNAL_PRIVATE_DIR", "").strip() or ROOT_DIR).expanduser()
+if not PRIVATE_DIR.is_absolute():
+    PRIVATE_DIR = ROOT_DIR / PRIVATE_DIR
+PRIVATE_DIR = PRIVATE_DIR.resolve()
+if PRIVATE_DIR != ROOT_DIR:
+    load_dotenv(PRIVATE_DIR / ".env")
+
+DATA_DIR = PRIVATE_DIR / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DB_PATH = DATA_DIR / "stacksignal.db"
 # Overridable so the browser tests (backend/e2e/) run the real server on a scratch database.
