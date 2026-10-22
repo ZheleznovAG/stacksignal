@@ -10,7 +10,8 @@ python scripts/public_release.py --audit-history
 python scripts/public_release.py --output dist/stacksignal-public.zip
 ```
 
-The export contains reviewed source directories, documentation and launchers. It
+The export contains reviewed source directories, documentation, `AGENTS.md`, `CLAUDE.md`
+and the portable `stacksignal.py` entry point. It
 does not include Git history, Git author metadata, local data, configuration, archives,
 agent results or a Git bundle. It includes current uncommitted source changes.
 Output paths must be new; existing archives are never overwritten. A SHA-256 file
@@ -23,6 +24,10 @@ objects, reflogs or arbitrary binary image contents. Automated checks cannot ide
 every secret or personal detail. Review all exported text and images before upload.
 
 ## First publication
+
+These steps apply to an installation whose history has never been reviewed for publication.
+For an existing public repository, review and commit normal changes; a new history is not
+required for each release. See [STATUS.md](STATUS.md) for the current project checkpoint.
 
 Extract the public ZIP into a **new directory outside the personal checkout**, review
 the files, then run the backend and browser tests there. Start a new Git history:

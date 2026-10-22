@@ -40,7 +40,7 @@ def api():
 
 def test_scan_detects_projects_and_existing_paths_without_saving(api, tmp_path):
     new = project_folder(tmp_path, "New App")
-    existing = project_folder(tmp_path, "Lira")
+    existing = project_folder(tmp_path, "Existing App")
     (tmp_path / "EmptyFolder").mkdir()
     project_folder(tmp_path, "node_modules")
     project_folder(tmp_path, ".hidden")
@@ -50,9 +50,9 @@ def test_scan_detects_projects_and_existing_paths_without_saving(api, tmp_path):
     response = api.post("/api/projects/scan-directory", json={"path": str(tmp_path)})
     assert response.status_code == 200
     data = response.json()
-    assert {p["name"] for p in data["projects"]} == {"New App", "Lira"}
+    assert {p["name"] for p in data["projects"]} == {"New App", "Existing App"}
     candidates = {p["name"]: p for p in data["projects"]}
-    assert candidates["Lira"]["existing_project"]["id"] == saved["id"]
+    assert candidates["Existing App"]["existing_project"]["id"] == saved["id"]
     assert candidates["New App"]["existing_project"] is None
     assert candidates["New App"]["path"] == str(new)
     assert candidates["New App"]["proposal"]["stack"] == ["fastapi"]

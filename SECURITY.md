@@ -1,6 +1,6 @@
 # Security
 
-StackSignal is designed for one user on their own computer. Its launchers bind to
+StackSignal is designed for one user on their own computer. Its Python launcher binds to
 `127.0.0.1`; there is no user authentication. Host/origin validation and framing
 protection reduce browser-based attacks, but are not a replacement for authentication.
 Keep the service on loopback. Network hosting requires a separate security design.
@@ -11,6 +11,8 @@ The SQLite database, profiles, votes, decisions, local folder paths, agent batch
 AI responses and backups are private runtime data in `data/`. Keys belong in `.env`.
 Set `STACKSIGNAL_PRIVATE_DIR` to keep both outside the checkout; its private `.env`
 and `data/` are loaded automatically. Project archives never include that separate folder.
+Machine-specific `AGENTS.local.md` notes are ignored and refused by public source checks;
+SQLite files outside the usual data directory are refused if forced into Git as well.
 Project descriptions and collected content are sent to an AI gateway or local agent
 when you explicitly use that analysis workflow. External collectors contact their
 respective APIs; Telegram sends a digest only when configured.

@@ -3,7 +3,7 @@
 No AI call and no writes. Once a project has at least two positive and two negative embedded judgments,
 StackSignal uses that profile as a weak extra ranking signal for unseen chat/Radar candidates.
 
-    .venv\\Scripts\\python.exe backend\\scripts\\preference_report.py
+    python stacksignal.py script preference-report
 """
 
 import sys

@@ -1,10 +1,10 @@
 """Work through the AI analysis backlog with a local agent instead of the gateway (app/agent_analysis.py).
 
-    .venv\\Scripts\\python.exe backend\\scripts\\agent_analysis.py status
-    .venv\\Scripts\\python.exe backend\\scripts\\agent_analysis.py next [--items 10] [--batches 1]
-    .venv\\Scripts\\python.exe backend\\scripts\\agent_analysis.py show data\\agent-analysis\\batch-0001.json
-    .venv\\Scripts\\python.exe backend\\scripts\\agent_analysis.py apply data\\agent-analysis\\batch-0001.json [--model NAME]
-    .venv\\Scripts\\python.exe backend\\scripts\\agent_analysis.py release
+    python stacksignal.py script agent-analysis status
+    python stacksignal.py script agent-analysis next [--items 10] [--batches 1]
+    python stacksignal.py script agent-analysis show path/from/export/batch-0001.json
+    python stacksignal.py script agent-analysis apply path/from/export/batch-0001.json [--model NAME]
+    python stacksignal.py script agent-analysis release
 
 `next` writes data/agent-analysis/context.json (prompt + shared payload) and batch files; the agent
 writes each answer next to its batch as batch-<n>.result.json; `apply` validates and stores it.

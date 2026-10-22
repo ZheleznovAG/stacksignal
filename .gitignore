@@ -4,6 +4,13 @@
 /dist/
 /public-release/
 /projectpack-*/
+*.local.md
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
 
 # Credentials and machine configuration
 .env

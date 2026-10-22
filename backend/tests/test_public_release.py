@@ -42,12 +42,24 @@ def test_archive_contains_current_source_without_history_or_private_state(reposi
         assert archive.read("StackSignal/backend/windows.py") == b"# windows checkout\n"
         assert not any("/.git/" in p or "/data/" in p or p.endswith("/.env") for p in names)
         assert not any("private-notes" in p or "history.bundle" in p for p in names)
-        assert archive.getinfo("StackSignal/run.sh").external_attr >> 16 == 0o100755
+        assert archive.getinfo("StackSignal/stacksignal.py").external_attr >> 16 == 0o100644
+        assert "StackSignal/AGENTS.md" in names and "StackSignal/CLAUDE.md" in names
     assert result["sha256"] == hashlib.sha256(target.read_bytes()).hexdigest()
     assert target.with_suffix(".zip.sha256").exists()
     assert target.with_suffix(".zip.manifest.json").exists()
     with pytest.raises(release.make_archive.ArchiveError, match="already exists"):
         release.write_public_zip(target, {})
+
+
+@pytest.mark.parametrize("names", [["AGENTS.local.md"], ["scratch.db", "scratch.db-journal", "scratch.db-wal"],
+                                  ["scratch.sqlite3", "scratch.sqlite3-shm", "scratch.sqlite-wal"]])
+def test_force_added_local_notes_and_database_files_fail_public_checks(repository, names):
+    for name in names:
+        (repository / name).write_text("private runtime placeholder", encoding="utf-8")
+        subprocess.run(["git", "-C", str(repository), "add", "-f", name], check=True)
+        with pytest.raises(release.make_archive.ArchiveError, match="Private file tracked"):
+            release.source_contents()
+        subprocess.run(["git", "-C", str(repository), "rm", "--cached", "--quiet", name], check=True)
 
 
 @pytest.mark.parametrize("value,rule", [
@@ -74,18 +86,27 @@ def test_forced_tracking_of_runtime_data_fails_the_public_check(repository):
 
 
 def test_history_audit_finds_a_removed_token_without_printing_it(repository):
+    git = ["git", "-C", str(repository)]
+    identity = ["-c", "user.name=Example", "-c", "user.email=example@example.invalid"]
+    subprocess.run([*git, *identity, "commit", "--quiet", "-m", "Clean fixture"], check=True)
+    clean = release.audit_history()
+    assert not clean["credential_or_private_path_findings"]
+    assert "continue normal development" in clean["recommendation"]
     value = "ghp_" + "B" * 36
     path = repository / "backend/old.py"
     path.write_text(value, encoding="utf-8")
-    git = ["git", "-C", str(repository)]
+    database = repository / "scratch.db"
+    database.write_bytes(b"synthetic database fixture")
     subprocess.run([*git, "add", "."], check=True)
-    identity = ["-c", "user.name=Example", "-c", "user.email=example@example.invalid"]
     subprocess.run([*git, *identity, "commit", "--quiet", "-m", "Synthetic fixture"], check=True)
     path.unlink()
+    database.unlink()
     subprocess.run([*git, "add", "-u"], check=True)
     subprocess.run([*git, *identity, "commit", "--quiet", "-m", "Remove fixture"], check=True)
     report = release.audit_history()
     assert any("github-token" in r["rules"] for r in report["credential_or_private_path_findings"])
+    assert "flagged history" in report["recommendation"]
+    assert any("private-history-path" in r["rules"] for r in report["credential_or_private_path_findings"])
     assert value not in str(report)
 
 

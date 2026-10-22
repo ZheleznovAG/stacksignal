@@ -1,0 +1,12 @@
+title = "StackSignal secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public SHA-256 of the pinned tokenizer artifact, not an API credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(^|[\\/])backend[\\/]app[\\/]embeddings\.py$''']
+regexTarget = "secret"
+regexes = ['''^be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037$''']

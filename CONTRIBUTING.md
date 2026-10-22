@@ -1,42 +1,78 @@
 # Contributing
 
-StackSignal is a local, single-user technology radar. The backend is Python/FastAPI
-with SQLite and Alembic; the frontend uses native JavaScript modules with no build step.
-The interface is currently in Russian.
+Read [AGENTS.md](AGENTS.md) and [docs/STATUS.md](docs/STATUS.md) for the current checkpoint.
+StackSignal is a local, single-user application: Python/FastAPI, SQLite/Alembic and native
+JavaScript modules with no frontend build. The UI is currently in Russian.
 
 ## Development
 
-Start with `./run.sh` or `.\run.ps1`, then open http://localhost:8000.
-Python 3.11 or newer is required. Keep credentials in your local `.env` and runtime
-data in `data/`; neither belongs in a commit, issue, screenshot or test fixture.
+Python 3.11+ is required. From the repository root:
 
-Install the test dependencies into the environment created by the launcher:
-
-```sh
-python -m pip install -r backend/requirements-dev.txt -c backend/constraints.txt
-python -m pip install -r backend/requirements-e2e.txt -c backend/constraints.txt
-python -m playwright install chromium
-cd backend
-python -m pytest -q
-python -m pytest e2e -q
+```text
+python stacksignal.py setup --dev
+python stacksignal.py run --reload
 ```
 
-Activate `.venv` first, or replace `python` with `.venv/bin/python` on Unix or
-`.venv\Scripts\python.exe` on Windows (adjust the path after changing directory).
-Backend tests block outside network access. Browser tests start their own server
-and scratch database; they do not need an AI gateway or live account credentials.
+The launcher selects the environment interpreter; shell activation is unnecessary.
+Use `python3` where that is the installed Python command. Existing `.env` files are preserved.
 
-## Pull requests
+## Validation
 
-- Describe the problem, resulting behavior and checks you ran.
-- Add regression coverage for changes to persistence, ranking, imports or security.
-- Use fictional profiles and deterministic fake HTTP responses in tests.
-- Preserve user votes, decisions, edits and analysis provenance when changing migrations.
-- Keep AI-backed judgments distinguishable from heuristic matching.
-- Update the relevant documentation when changing setup or configuration.
+```text
+python stacksignal.py test
+python stacksignal.py setup --browser
+python stacksignal.py test --browser
+python stacksignal.py exec -- -m pip check
+python scripts/public_release.py --check
+python scripts/check_docs.py
+```
 
-Before submitting, run `python scripts/public_release.py --check`. The scanner is
-a useful baseline; review the diff yourself for personal information and secrets.
-Dependency upgrades should update both requirements and `backend/constraints.txt`.
+Backend tests block external network, disable AI/model download and use scratch databases.
+Browser tests run Chromium against a separate server/database. They need no live credentials.
+On Linux, Chromium may need OS libraries: `python stacksignal.py exec -- -m playwright install-deps chromium`.
+CI provisions those libraries before browser tests.
+
+Run selected backend tests with, for example:
+
+```text
+python stacksignal.py test -- tests/test_needs.py -k stale
+python stacksignal.py test --browser -- -k experiment
+```
+
+Additional Python tooling uses `python stacksignal.py exec -- ...`; maintenance commands
+use `python stacksignal.py script NAME ...`. These preserve argument boundaries and use the
+project environment from any supported OS.
+
+## Data and migrations
+
+- Keep credentials, personal profiles, local paths and actual agent artifacts outside source/tests.
+- Use fictional fixtures and explicit fake transports. Never evaluate a test against a personal database.
+- Preserve user-owned votes, decisions, manual needs, evidence and history during re-analysis.
+- Keep heuristic matches, AI judgments and experiment measurements distinguishable.
+- Add an Alembic revision when models change. Migration tests compare the schema with the models.
+- For autogeneration, point `ALEMBIC_DATABASE_URL` in a temporary process environment at an initialized
+  scratch SQLite database, then use `python stacksignal.py exec -- -m alembic -c backend/alembic.ini revision --autogenerate -m "description"`.
+  Review the generated migration and remove the override before running the application.
+- Keep remote calls outside write transactions; respect collection checkpoints and AI budgets.
+
+## Documentation and changes
+
+Record the resulting behavior and appropriate validation. Update `docs/STATUS.md` when the
+checkpoint or next task changes; keep architecture in `docs/ARCHITECTURE.md`, operations in
+`docs/OPERATIONS.md`, and user workflows in `docs/usage.md`. Private installation details belong
+in ignored `AGENTS.local.md`. Add regression coverage for persistence, migration, ranking,
+import and security changes. Dependency changes update requirements and `backend/constraints.txt`.
+
+Public source checks are best-effort; review the diff for personal data before publication.
+With Gitleaks installed, also check the staged changes and all reachable Git history:
+
+```text
+gitleaks git --staged --redact
+gitleaks git --log-opts="--all" --redact
+```
+
+The checked-in configuration extends the default rules. Its only exception matches the
+exact public tokenizer checksum in `backend/app/embeddings.py`; other keys and files
+remain subject to the default checks. Never scan private runtime data into a public report.
 
 Contributions are made under the project's [MIT license](LICENSE).

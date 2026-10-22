@@ -18,14 +18,16 @@ import make_archive
 
 ROOT = make_archive.ROOT
 ROOT_FILES = {
-    ".env.example", ".gitattributes", ".gitignore", "README.md", "LICENSE",
-    "CONTRIBUTING.md", "SECURITY.md", "run.ps1", "run.sh",
+    ".env.example", ".gitattributes", ".gitignore", ".gitleaks.toml", "README.md", "LICENSE",
+    "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "CLAUDE.md", "stacksignal.py",
 }
 SOURCE_DIRS = {"backend", "frontend", "scripts", "docs", ".github"}
 BLOCKED_PARTS = {".git", ".venv", "__pycache__", ".pytest_cache", "node_modules",
                  "data", "github-export", "dist", ".test-tmp"}
 ALLOWED_SUFFIXES = {".py", ".js", ".css", ".html", ".md", ".txt", ".ini", ".mako",
-                    ".yml", ".yaml", ".ps1", ".sh", ".vbs", ".png"}
+                    ".yml", ".yaml", ".png"}
+PRIVATE_DATABASE_SUFFIXES = tuple(extension + sidecar for extension in (".db", ".sqlite", ".sqlite3")
+                                  for sidecar in ("", "-wal", "-shm", "-journal"))
 TOKEN_PATTERNS = {
     "github-token": re.compile(rb"\bgh[pousr]_[A-Za-z0-9]{30,}\b|\bgithub_pat_[A-Za-z0-9_]{40,}\b"),
     "provider-key": re.compile(rb"\bsk-(?:ant-[A-Za-z0-9_-]{30,}|proj-[A-Za-z0-9_-]{30,}|[A-Za-z0-9]{40,})"),
@@ -36,12 +38,16 @@ TOKEN_PATTERNS = {
 }
 
 
+def private_runtime_path(path: str) -> bool:
+    return make_archive.is_secret(path) or path.lower().endswith(PRIVATE_DATABASE_SUFFIXES)
+
+
 def is_public(path: str) -> bool:
     parts = PurePosixPath(path).parts
     if (not parts or PurePosixPath(path).is_absolute() or ".." in parts or "\\" in path
             or any(p.lower() in BLOCKED_PARTS for p in parts)):
         return False
-    if make_archive.is_secret(path) or path.endswith(".sha256"):
+    if private_runtime_path(path) or path.endswith(".sha256"):
         return False
     if path in ROOT_FILES or path == ".claude/skills/analyze-backlog/SKILL.md":
         return True
@@ -78,7 +84,7 @@ def source_contents() -> dict[str, bytes]:
         raise make_archive.ArchiveError("Missing public files: " + ", ".join(sorted(missing)))
     # A forced git add of runtime state must fail CI even though exports exclude it.
     for raw in make_archive.git("ls-files", "-z").decode().split("\0"):
-        if raw and (ROOT / raw).exists() and make_archive.is_secret(raw):
+        if raw and (ROOT / raw).exists() and private_runtime_path(raw):
             raise make_archive.ArchiveError(f"Private file tracked by Git: {raw}")
     return contents
 
@@ -104,11 +110,11 @@ def audit_history() -> dict:
             data = process.stdout.read(int(header[2]))
             process.stdout.read(1)
             rules = credential_rules(data, known)
-            if path and make_archive.is_secret(path.decode("utf-8", errors="replace")):
+            if path and private_runtime_path(path.decode("utf-8", errors="replace")):
                 rules.append("private-history-path")
             if header[1] == b"tree":
                 rows = make_archive.git("ls-tree", "-z", oid.decode()).split(b"\0")
-                if any(row and make_archive.is_secret(row.split(b"\t", 1)[1].decode("utf-8")) for row in rows):
+                if any(row and private_runtime_path(row.split(b"\t", 1)[1].decode("utf-8")) for row in rows):
                     rules.append("private-history-tree-entry")
             if path.endswith(b"/seed.py") and b"PROJECT_PROFILES = [" in data and b'"slug":' in data:
                 bootstrap_objects += 1
@@ -118,9 +124,12 @@ def audit_history() -> dict:
         process.stdin.close()
         process.wait(timeout=10)
         process.stdout.close()
+    recommendation = ("Review the flagged history before publication; use a clean source snapshot if needed."
+                      if findings or bootstrap_objects else
+                      "No checked findings in reachable history; continue normal development and review changes before publication.")
     return {"reachable_objects": len(entries), "credential_or_private_path_findings": findings,
             "objects_with_embedded_bootstrap_profiles": bootstrap_objects,
-            "recommendation": "Publish a clean source snapshot with a new Git history."}
+            "recommendation": recommendation}
 
 
 def write_public_zip(target: Path, contents: dict[str, bytes]) -> dict:
@@ -136,7 +145,7 @@ def write_public_zip(target: Path, contents: dict[str, bytes]) -> dict:
             info = zipfile.ZipInfo("StackSignal/" + name)
             info.create_system = 3
             info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = (0o100755 if name == "run.sh" else 0o100644) << 16
+            info.external_attr = 0o100644 << 16
             archive.writestr(info, data)
     digest = hashlib.sha256(target.read_bytes()).hexdigest()
     checksum.write_text(f"{digest}  {target.name}\n", encoding="utf-8")

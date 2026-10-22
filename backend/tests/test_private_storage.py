@@ -53,3 +53,25 @@ def test_empty_process_setting_disables_external_storage_for_tests(tmp_path):
     config, project, _ = configure(tmp_path, pointer="../private",
                                   environment={"STACKSIGNAL_PRIVATE_DIR": ""})
     assert config["DATA_DIR"] == project / "data"
+
+
+def test_gateway_key_alias_uses_explicit_configuration_on_every_platform(tmp_path):
+    config, _, _ = configure(tmp_path, environment={"AI_BASE_URL": "http://127.0.0.1:8787",
+        "AI_ENABLED": "1", "GATEWAY_API_KEY": "gateway-placeholder"})
+    assert config["AI_API_KEY"] == "gateway-placeholder" and config["LLM_ENABLED"]
+    config, _, _ = configure(tmp_path / "second", environment={"AI_BASE_URL": "http://127.0.0.1:8787",
+        "AI_API_KEY": "explicit-placeholder", "GATEWAY_API_KEY": "gateway-placeholder"})
+    assert config["AI_API_KEY"] == "explicit-placeholder"
+
+
+def test_embedding_files_follow_the_configured_private_data_directory(tmp_path, monkeypatch):
+    import importlib.util
+    from app import config
+
+    private_data = tmp_path / "private/data"
+    monkeypatch.setattr(config, "DATA_DIR", private_data)
+    spec = importlib.util.spec_from_file_location("app._embedding_storage_probe", SOURCE.with_name("embeddings.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.MODEL_DIR == private_data / "models/all-MiniLM-L6-v2"
+    assert all(path.is_relative_to(private_data) for _, path, _ in module._FILES)

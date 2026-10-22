@@ -22,17 +22,8 @@ DB_PATH = DATA_DIR / "stacksignal.db"
 DATABASE_URL = os.getenv("STACKSIGNAL_DATABASE_URL", "").strip() or f"sqlite:///{DB_PATH}"
 
 def _shared_gateway_key() -> str:
-    key = os.getenv("GATEWAY_API_KEY", "")
-    if key or os.name != "nt":
-        return key
-    # The sibling gateway launcher stores its local service key in user environment,
-    # outside either repository. Existing terminal sessions can read it immediately.
-    import winreg
-    try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as environment:
-            return winreg.QueryValueEx(environment, "GATEWAY_API_KEY")[0]
-    except OSError:
-        return ""
+    # Explicit environment/.env alias, identical on every supported operating system.
+    return os.getenv("GATEWAY_API_KEY", "")
 
 
 AI_BASE_URL = os.getenv("AI_BASE_URL", "http://127.0.0.1:8787").rstrip("/")

@@ -24,7 +24,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 SECRET_PATTERNS = [".env", ".env.*", "client.json", "*.pem", "*.key", "*.p12", "*.pfx",
-                   "id_rsa*", "id_ed25519*", "*secret*", "data/*", "*.zip"]
+                   "id_rsa*", "id_ed25519*", "*secret*", "data/*", "*.zip", "*.local.md"]
 SECRET_ENV_KEY = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD)$", re.IGNORECASE)
 PRIVATE_KEY = re.compile(rb"-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----")
 URL_CREDENTIALS = re.compile(rb"https?://[^\s/@:]+:([^\s/@]+)@")

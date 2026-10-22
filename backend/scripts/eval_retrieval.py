@@ -14,8 +14,8 @@ Metrics:
 * judged precision@10: among manually judged results in the top 10, how many were positive
 
 Run from anywhere with the project venv:
-    .venv\\Scripts\\python.exe backend\\scripts\\eval_retrieval.py
-    .venv\\Scripts\\python.exe backend\\scripts\\eval_retrieval.py --manual-only
+    python stacksignal.py script eval-retrieval
+    python stacksignal.py script eval-retrieval --manual-only
 """
 
 import argparse

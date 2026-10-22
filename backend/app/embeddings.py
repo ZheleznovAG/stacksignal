@@ -20,12 +20,11 @@ import httpx
 from sqlalchemy.orm import Session
 
 from . import config, models
-from .config import ROOT_DIR
 from .utils import utcnow
 
 logger = logging.getLogger(__name__)
 
-MODEL_DIR = ROOT_DIR / "data" / "models" / "all-MiniLM-L6-v2"
+MODEL_DIR = config.DATA_DIR / "models" / "all-MiniLM-L6-v2"
 MODEL_FILE = MODEL_DIR / "model.onnx"
 TOKENIZER_FILE = MODEL_DIR / "tokenizer.json"
 # A fixed commit, not "main": the same StackSignal version always gets the same bytes, and a file
