@@ -1,6 +1,7 @@
 # Contributing
 
 Read [AGENTS.md](AGENTS.md) and [docs/STATUS.md](docs/STATUS.md) for the current checkpoint.
+Use the [documentation index](docs/README.md) to find user and operational guides.
 StackSignal is a local, single-user application: Python/FastAPI, SQLite/Alembic and native
 JavaScript modules with no frontend build. The UI is currently in Russian.
 
@@ -62,6 +63,9 @@ checkpoint or next task changes; keep architecture in `docs/ARCHITECTURE.md`, op
 `docs/OPERATIONS.md`, and user workflows in `docs/usage.md`. Private installation details belong
 in ignored `AGENTS.local.md`. Add regression coverage for persistence, migration, ranking,
 import and security changes. Dependency changes update requirements and `backend/constraints.txt`.
+
+Keep the English and Russian README overviews aligned, and link new guides from
+`docs/README.md`. Keep dated audit results distinct from current feature and publication state.
 
 Public source checks are best-effort; review the diff for personal data before publication.
 With Gitleaks installed, also check the staged changes and all reachable Git history:

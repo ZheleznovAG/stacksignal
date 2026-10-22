@@ -18,7 +18,7 @@ import make_archive
 
 ROOT = make_archive.ROOT
 ROOT_FILES = {
-    ".env.example", ".gitattributes", ".gitignore", ".gitleaks.toml", "README.md", "LICENSE",
+    ".env.example", ".gitattributes", ".gitignore", ".gitleaks.toml", "README.md", "README.ru.md", "LICENSE",
     "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "CLAUDE.md", "stacksignal.py",
 }
 SOURCE_DIRS = {"backend", "frontend", "scripts", "docs", ".github"}

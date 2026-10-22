@@ -1,5 +1,7 @@
 # Работа с агентами
 
+[Документация](README.md) · [Текущее состояние](STATUS.md)
+
 Перед работой прочитайте [AGENTS.md](../AGENTS.md) и [STATUS.md](STATUS.md).
 Описанные ниже команды выполняются из корня и используют `.venv` через переносимый launcher.
 Установка: `python stacksignal.py setup`.

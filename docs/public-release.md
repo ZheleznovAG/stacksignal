@@ -1,8 +1,30 @@
-# Preparing a public repository
+# Publishing StackSignal source
+
+[Documentation](README.md) · [Current state](STATUS.md)
+
+## Updating the existing public repository
+
+Review normal changes and commit them to the existing history. A new history is not
+required for each update. Check the source, documentation and reachable Git history:
+
+```text
+python scripts/public_release.py --check
+python scripts/check_docs.py
+python scripts/public_release.py --audit-history
+gitleaks git --staged --redact
+gitleaks git --log-opts="--all" --redact
+```
+
+Gitleaks is optional external tooling; the Python checks use the standard library.
+Review the actual diff and screenshots as well. Commit and push only the reviewed
+changes; private notes, credentials and runtime files stay outside Git.
+
+## Public source snapshots
 
 An existing personal installation may contain private information in old commits,
 screenshots and Git metadata even after its current files have been cleaned.
-Build a clean source snapshot before creating the public repository:
+For a source-only handoff or the first publication from private development, build a
+clean source snapshot:
 
 ```sh
 python scripts/public_release.py --check
@@ -10,7 +32,7 @@ python scripts/public_release.py --audit-history
 python scripts/public_release.py --output dist/stacksignal-public.zip
 ```
 
-The export contains reviewed source directories, documentation, `AGENTS.md`, `CLAUDE.md`
+The export contains reviewed source directories, both README languages, documentation, `AGENTS.md`, `CLAUDE.md`
 and the portable `stacksignal.py` entry point. It
 does not include Git history, Git author metadata, local data, configuration, archives,
 agent results or a Git bundle. It includes current uncommitted source changes.
@@ -46,11 +68,12 @@ visibility or pushing its old branches/tags would also expose its old history.
 
 ## GitHub settings
 
-- Review the proposed MIT license and copyright notice.
+- Keep the MIT license and copyright notice in the published source.
 - Enable private vulnerability reporting, secret scanning and push protection where available.
 - Require passing tests for pull requests to `main`.
-- Use the repository description: **A local technology radar that matches open-source tools to your projects.**
-- Suggested topics: `technology-radar`, `fastapi`, `sqlite`, `github`, `local-first`.
+- Keep the repository description aligned with the README: **Local-first technology radar: match open-source tools, models and papers to project needs, test candidates, and keep evidence-backed decisions.**
+- Topics: `technology-radar`, `developer-tools`, `local-first`, `python`, `fastapi`, `sqlite`, `research-tools`, `decision-support`.
+- Link documentation from the README; add a website only when a separate site exists.
 
 `scripts/make_archive.py` serves a different purpose: transferring a private checkout
 with its Git history. Its archives, especially those made with `--include-data`, must

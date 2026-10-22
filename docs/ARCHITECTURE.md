@@ -1,5 +1,7 @@
 # Архитектура
 
+[Документация](README.md) · [Текущее состояние](STATUS.md)
+
 ## Среда выполнения
 
 Python 3.11+, FastAPI, SQLAlchemy, SQLite с WAL и Alembic. Backend обслуживает и API,
