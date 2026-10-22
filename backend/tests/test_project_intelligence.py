@@ -176,10 +176,17 @@ def test_need_graph_blocks_future_layers_and_unlocks_them_after_prerequisite(db_
 
     first.state = "satisfied"
     first.result_note = "validated"
+    first.result_fingerprint = needs.result_fingerprint(first)
     db.commit()
     state = needs.graph_state(db, project.id)
     assert state[second.id]["readiness"] == "ready"
     assert state[second.id]["blocked_by"] == []
+    first.constraints = "Changed device requirements"
+    db.commit()
+    state = needs.graph_state(db, project.id)
+    assert state[first.id]["readiness"] == "stale_result"
+    assert state[second.id]["readiness"] == "blocked"
+    assert all(link.id != second.id for link, _, _ in needs.shortlist(db, [first, second]))
 
 
 def test_project_inference_rejects_dependency_cycles(db_session):

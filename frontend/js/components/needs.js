@@ -5,6 +5,7 @@ import { alertBox, busy, button, empty, field, input, openModal, sectionHead, se
 import { loadProjects } from "../store.js";
 import { openItem } from "./item-drawer.js";
 import { quickDecision } from "./quick-decision.js";
+import { prepareExperiment, experimentHistory } from "./experiments.js";
 
 const STATES = { open: "Открыта", evaluating: "Проверяю", satisfied: "Результат подтверждён", deferred: "Отложена", dropped: "Отказался" };
 const COVERAGE = { pending: "Оценка не завершена", candidates: "Есть кандидаты для проверки", evaluating: "Идёт проверка",
@@ -15,11 +16,11 @@ const CONSTRAINTS = { unknown: "Ограничения ещё не провер�
 export async function needsTab(body, project) {
   const reload = () => body.isConnected && needsTab(body, project);
   try {
-    const [rows, plan] = await Promise.all([get(`/needs?project_id=${project.id}`), get("/needs/plan")]);
+    const [rows, plan, experiments] = await Promise.all([get(`/needs?project_id=${project.id}`), get(`/needs/plan?project_id=${project.id}`), get(`/experiments?project_id=${project.id}`)]);
     const analyze = button("Оценить следующую пару находок", { kind: "secondary", disabled: !plan.pending_pairs });
     analyze.addEventListener("click", () => busy(analyze, async () => {
       try {
-        const result = await post("/needs/analyze");
+        const result = await post("/needs/analyze", { project_id: project.id });
         toast(result.error_code ? `Анализ ожидает: ${T.gatewayCode[result.error_code] || result.error_code}`
           : `Сохранено оценок: ${result.saved}.`, { kind: result.error_code ? "info" : "success" });
         reload();
@@ -41,28 +42,40 @@ export async function needsTab(body, project) {
       rows.some(n => n.pilot) && h("div", { class: "panel panel-pad section-tight" },
         h("p", null, `Пилот: ${plan.candidate_items} находок, ${plan.pending_pairs} оценок в очереди, ${plan.batches_required} пакетов.`),
         h("p", { class: "faint small" }, "Один запуск обрабатывает до двух находок в пределах общего бюджета шлюза."), analyze),
-      rows.length ? h("div", { class: "stack" }, rows.map(n => needCard(n, project, reload)))
+      rows.length ? h("div", { class: "stack" }, rows.map(n => needCard(n, project, reload, experiments.filter(row => row.context_need_id === n.id))))
         : empty("search", "Потребностей пока нет", "Запишите конкретную задачу, ограничения и критерий проверки."));
   } catch (error) { mount(body, alertBox("error", "Не удалось загрузить потребности", errorText(error))); }
 }
 
 function workOrder(rows) {
   const ready = rows.filter(n => n.readiness === "ready").sort((a, b) =>
-    (b.effective_priority || b.priority) - (a.effective_priority || a.priority) || a.depth - b.depth);
+    Number(b.pilot) - Number(a.pilot) || (b.effective_priority || b.priority) - (a.effective_priority || a.priority) || a.depth - b.depth);
   const blocked = rows.filter(n => n.readiness === "blocked").sort((a, b) => a.depth - b.depth || b.priority - a.priority);
   return h("section", { class: "panel panel-pad section-tight" },
     sectionHead("Что делать сначала"),
     ready.length
-      ? h("div", { class: "stack compact-stack" }, ready.slice(0, 5).map(n => h("div", { class: "small" },
-          h("b", null, n.title),
-          n.unlocks?.length ? h("span", { class: "faint" }, ` → открывает: ${n.unlocks.map(x => x.title).join(", ")}`) : null)))
+      ? h("div", { class: "stack" }, ready.slice(0, 3).map(n => {
+          const best = (n.candidates || []).find(c => c.score !== null && c.score >= 0.6 && c.constraint_status !== "conflict");
+          return h("div", { class: "small" }, h("b", null, n.gap?.title || n.title),
+            n.acceptance_criteria && h("p", { class: "muted small" }, "Проверить: ", n.acceptance_criteria),
+            best ? h("p", { class: "small" }, "Кандидат: ", best.name, best.rationale ? ` — ${best.rationale}` : "")
+              : h("p", { class: "muted small" }, n.coverage === "no_match" ? "Подходящих кандидатов среди проверенных пока нет."
+                : n.candidate_count ? "Сначала оцените найденных кандидатов." : "Подходящих находок в текущем каталоге пока нет."),
+            button("К потребности и проверкам", { kind: "ghost", size: "sm", onClick: () => {
+              const card = document.querySelector(`[data-need-id="${n.id}"]`);
+              const candidates = card?.querySelector(".need-candidates");
+              if (candidates) candidates.open = true;
+              card?.scrollIntoView({ behavior: "smooth", block: "start" });
+            } }),
+            n.unlocks?.length ? h("span", { class: "faint" }, ` → открывает: ${n.unlocks.map(x => x.title).join(", ")}`) : null);
+        }))
       : h("p", { class: "muted small" }, "Нет открытых готовых потребностей."),
     blocked.length ? h("details", { class: "section-tight" },
       h("summary", { class: "small" }, `Позже, после зависимостей (${blocked.length})`),
       blocked.map(n => h("p", { class: "faint small" }, `${n.title} ← ${n.blocked_by.map(x => x.title).join(", ")}`))) : null);
 }
 
-function needCard(need, project, reload) {
+function needCard(need, project, reload, experiments) {
   const candidates = need.candidates || [];
   return h("section", { class: "panel panel-pad need-card", dataset: { needId: need.id } },
     sectionHead(need.title, { actions: button("Изменить / записать результат", { kind: "ghost", size: "sm", onClick: () => editNeed(project, need, reload) }) }),
@@ -76,6 +89,7 @@ function needCard(need, project, reload) {
     need.constraints && h("p", { class: "muted small" }, "Ограничения: ", need.constraints),
     need.acceptance_criteria && h("p", { class: "muted small" }, "Критерий: ", need.acceptance_criteria),
     need.result_note && h("p", null, "Записанный результат: ", need.result_note),
+    experimentHistory(experiments, reload),
     h("p", { class: "faint small" }, `Оценено ${need.assessed_count} из ${need.candidate_count} кандидатов. `,
       !need.pilot ? "Автоматическая оценка в пилоте выключена." : "AI не проверяет работу на вашем устройстве."),
     candidates.length > 0 && h("details", { class: "need-candidates" },
@@ -88,7 +102,8 @@ function needCard(need, project, reload) {
         c.rationale && h("p", { class: "small" }, c.rationale),
         c.evidence?.length > 0 && h("blockquote", { class: "small" }, c.evidence.join(" · ")),
         c.provenance?.provider && h("p", { class: "faint xs" }, `Оценка: ${c.provenance.provider}`),
-        quickDecision(c, { project_slug: need.project_slug, project_name: need.project_name }, reload)))));
+        h("div", { class: "section-actions" }, prepareExperiment(need, c, reload),
+          quickDecision(c, { project_slug: need.project_slug, project_name: need.project_name }, reload))))));
 }
 
 function editNeed(project, need, reload) {

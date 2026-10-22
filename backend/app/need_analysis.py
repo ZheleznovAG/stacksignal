@@ -43,8 +43,9 @@ class NeedBatchResult(StrictOutput):
     results: list[AssessmentResult] = Field(max_length=180)
 
 
-def plan(db):
-    pairs = needs.shortlist(db)
+def plan(db, *, project_id=None):
+    selected = needs.links(db, project_id, pilot_only=True)
+    pairs = needs.shortlist(db, selected)
     assessments = {(a.context_need_id, a.item_id): a for a in db.query(models.NeedAssessment)}
     pending = []
     for link, item, terms in pairs:
@@ -56,7 +57,11 @@ def plan(db):
     ids = list(dict.fromkeys(item.id for _, item, _, _ in pending))
     batches = []
     if pending:
-        shared = batch_context(db, [p for p in db.query(models.Project) if p.lifecycle_status != "archived"])
+        selected_ids = {link.project_id for link in selected}
+        shared = batch_context(db, [p for p in db.query(models.Project)
+                                   if p.id in selected_ids and p.lifecycle_status != "archived"])
+        selected_slugs = {link.project.slug for link in selected}
+        shared["user_feedback"] = [row for row in shared["user_feedback"] if row.get("project") in selected_slugs]
         for offset in range(0, len(ids), BATCH_SIZE):
             batch_ids = set(ids[offset:offset + BATCH_SIZE])
             chunk = [(l, i, t, fp) for l, i, t, fp in pending if i.id in batch_ids]
@@ -135,9 +140,9 @@ def gateway_availability(context):
     return state
 
 
-def run(db, *, context=None, max_batches=1):
+def run(db, *, context=None, max_batches=1, project_id=None):
     context = context or AIContext(max_calls=max_batches)
-    workload = plan(db)
+    workload = plan(db, project_id=project_id)
     result = {k: v for k, v in workload.items() if k != "batches"}
     result.update(saved=0, attempted=0, error_code="")
     db.commit()

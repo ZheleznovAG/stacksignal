@@ -79,6 +79,11 @@ def result_fingerprint(link):
                    "acceptance_criteria": link.acceptance_criteria})
 
 
+def result_current(link):
+    return (link.state == "satisfied" and bool((link.result_note or "").strip())
+            and link.result_fingerprint == result_fingerprint(link))
+
+
 def shortlist(db, selected=None, *, limit=PILOT_ITEMS):
     selected = selected if selected is not None else links(db, pilot_only=True)
     states = {}
@@ -159,9 +164,9 @@ def graph_state(db, project_id):
 
     out = {}
     for link in project_links:
-        blockers = [by_id[i] for i in prerequisites.get(link.id, []) if by_id[i].state != "satisfied"]
+        blockers = [by_id[i] for i in prerequisites.get(link.id, []) if not result_current(by_id[i])]
         if link.state == "satisfied":
-            readiness = "satisfied"
+            readiness = "satisfied" if result_current(link) else "stale_result"
         elif link.state not in OPEN:
             readiness = "inactive"
         else:
@@ -272,6 +277,8 @@ def overview(db, project_id=None, *, pilot_only=False):
                 "rationale": assessment.rationale if current else "", "evidence": assessment.evidence if current else [],
                 "provenance": assessment.provenance if current else {},
                 "decision": decisions.get((link.project_id, item.id))})
+        candidates.sort(key=lambda c: (c["constraint_status"] == "conflict", c["score"] is None,
+                                       -(c["score"] or 0)))
         current_count = sum(c["analysis_status"] == "assessed" for c in candidates)
         suitable = [c for c in candidates if c["score"] is not None and c["score"] >= 0.6 and c["constraint_status"] != "conflict"]
         result_current = link.result_fingerprint == result_fingerprint(link)

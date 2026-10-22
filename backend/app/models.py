@@ -639,3 +639,30 @@ class NeedEvent(Base):
     action: Mapped[str] = mapped_column(String(30))
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=now)
+
+
+class NeedExperiment(Base):
+    """A frozen agent brief and the separately recorded outcome of an actual check."""
+    __tablename__ = "need_experiments"
+    __table_args__ = (
+        UniqueConstraint("active_key", name="uq_need_experiment_active_key"),
+        CheckConstraint("status IN ('draft','running','completed','cancelled')", name="ck_experiment_status"),
+        CheckConstraint("outcome IN ('','useful','not_useful','inconclusive')", name="ck_experiment_outcome"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    version_id: Mapped[int] = mapped_column(Integer, default=1)
+    context_need_id: Mapped[int] = mapped_column(ForeignKey("context_need_links.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[int | None] = mapped_column(ForeignKey("items.id", ondelete="SET NULL"), nullable=True, index=True)
+    active_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_fingerprint: Mapped[str] = mapped_column(String(64))
+    snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    brief: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="draft")
+    outcome: Mapped[str] = mapped_column(String(20), default="")
+    result_note: Mapped[str] = mapped_column(Text, default="")
+    evidence: Mapped[list] = mapped_column(JSON, default=list)
+    need_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=now)
+    completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    __mapper_args__ = {"version_id_col": version_id}

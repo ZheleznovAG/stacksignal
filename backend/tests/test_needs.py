@@ -61,6 +61,25 @@ def test_partial_results_leave_missing_pairs_pending_and_skip_changed_snapshots(
     assert outcome["stale"] == 2 and outcome["saved"] == 2
 
 
+def test_project_analysis_does_not_send_other_projects_or_requirements(pilot):
+    db, project, links, items = pilot
+    for link in links:
+        db.add(models.ItemFeedback(item_id=items[0].id, kind="vote", project_slug=link.project.slug, verdict=1))
+    db.commit()
+    plan = need_analysis.plan(db, project_id=project.id)
+    assert plan["candidate_pairs"] == 4
+    for batch in plan["batches"]:
+        assert {pair["context_need_id"] for pair in batch["pairs"]} == {links[0].id}
+        assert {row["slug"] for row in batch["projects"]} == {project.slug}
+        assert {row["project"] for row in batch["user_feedback"]} == {project.slug}
+    assert plan["pending_pairs"] == 4
+    first = plan["batches"][0]
+    client = FakeClient([_completed_envelope(answer(first))])
+    result = need_analysis.run(db, project_id=project.id, context=AIContext(client=client, max_calls=1))
+    assert result["saved"] == 2
+    assert {a.context_need_id for a in db.query(models.NeedAssessment)} == {links[0].id}
+
+
 @pytest.mark.parametrize("mutation", ["duplicate", "foreign", "evidence", "unsupported"])
 def test_invalid_agent_result_is_atomic(pilot, mutation):
     db, _, _, _ = pilot

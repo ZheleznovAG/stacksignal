@@ -12,13 +12,17 @@ router = APIRouter()
 
 
 @router.get("/api/needs/plan")
-def need_plan(db: Session = Depends(get_db)):
-    return {k: v for k, v in need_analysis.plan(db).items() if k != "batches"}
+def need_plan(project_id: int | None = None, db: Session = Depends(get_db)):
+    return {k: v for k, v in need_analysis.plan(db, project_id=project_id).items() if k != "batches"}
+
+
+class NeedAnalysisIn(BaseModel):
+    project_id: int | None = Field(default=None, gt=0)
 
 
 @router.post("/api/needs/analyze")
-def analyze_needs(db: Session = Depends(get_db)):
-    return need_analysis.run(db, max_batches=1)
+def analyze_needs(body: NeedAnalysisIn | None = None, db: Session = Depends(get_db)):
+    return need_analysis.run(db, max_batches=1, project_id=body.project_id if body else None)
 
 
 class NeedIn(BaseModel):

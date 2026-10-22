@@ -10,7 +10,7 @@ from . import config, context_profiles, needs as needs_module
 from .db import init_db
 from .maintenance import apply_pending
 from .routers import (authors, capabilities, chat, collect, digest, discover, health, items, opportunities,
-                      projects, queries, radar, relevant, today, needs)
+                      projects, queries, radar, relevant, today, needs, experiments)
 from .scheduler import start_scheduler, stop_scheduler
 from .security import LocalOnlyMiddleware
 from .seed import apply_project_profiles
@@ -47,7 +47,7 @@ app = FastAPI(title="StackSignal", lifespan=lifespan)
 app.add_middleware(LocalOnlyMiddleware, allowed_hosts=config.ALLOWED_HOSTS)
 
 for router_module in (health, today, projects, queries, capabilities, items, discover, relevant, radar,
-                      opportunities, digest, collect, chat, authors, needs):
+                      opportunities, digest, collect, chat, authors, needs, experiments):
     app.include_router(router_module.router)
 
 
